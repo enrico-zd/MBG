@@ -3,7 +3,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { signOut } from "next-auth/react"
-import { ChevronsUpDown, Coins, LayoutDashboard, LogOut, Sparkles } from "lucide-react"
+import { ChevronsUpDown, Coins, Folder, LayoutDashboard, ListChecks, LogOut, Settings2, Sparkles } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -19,15 +19,18 @@ type Item = { href: string; label: string; icon: ReactNode }
 
 const items: Item[] = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="size-4" /> },
-  { href: "/projects", label: "Projects", icon: <Sparkles className="size-4" /> },
+  { href: "/projects", label: "Projects", icon: <Folder className="size-4" /> },
+  { href: "/jobs", label: "Jobs", icon: <ListChecks className="size-4" /> },
   { href: "/credits", label: "Credits", icon: <Coins className="size-4" /> },
   { href: "/generate", label: "Generate", icon: <Sparkles className="size-4" /> },
+  { href: "/settings", label: "Settings", icon: <Settings2 className="size-4" /> },
 ]
 
 export function AppSidebar(props: { user: { name?: string | null; email?: string | null; image?: string | null } | null }) {
   const { collapsed } = useSidebar()
-  const userName = props.user?.name ?? "shadcn"
-  const userEmail = props.user?.email ?? "m@example.com"
+  const isAuthed = Boolean(props.user?.email)
+  const userName = props.user?.name ?? (isAuthed ? "User" : "Guest")
+  const userEmail = props.user?.email ?? (isAuthed ? "" : "Not signed in")
   const userImage = props.user?.image ?? "/placeholder.svg"
 
   return (
@@ -87,18 +90,22 @@ export function AppSidebar(props: { user: { name?: string | null; email?: string
                 <ChevronsUpDown className={cn("ml-auto size-4", collapsed && "hidden")} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-56">
-                <DropdownMenuItem
-                  inset
-                  onSelect={async () => {
-                    await signOut({ callbackUrl: "/login" })
-                  }}
-                >
-                  <LogOut className="size-4" />
-                  Sign out
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {isAuthed ? (
+                  <>
+                    <DropdownMenuItem
+                      inset
+                      onSelect={async () => {
+                        await signOut({ callbackUrl: "/login" })
+                      }}
+                    >
+                      <LogOut className="size-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
                 <DropdownMenuItem inset asChild>
-                  <Link href="/dashboard">Account</Link>
+                  <Link href={isAuthed ? "/settings" : "/login"}>{isAuthed ? "Account" : "Sign in"}</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

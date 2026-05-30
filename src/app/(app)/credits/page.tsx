@@ -1,11 +1,26 @@
-import { redirect } from "next/navigation"
+import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { getCreditsBalance, grantTrialCreditsIfNone } from "@/lib/credits"
 
 export default async function CreditsPage() {
   const session = await auth()
-  if (!session?.user?.id) redirect("/login")
+  if (!session?.user?.id) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="text-lg font-semibold">Credits</div>
+          <div className="text-sm text-muted-foreground">Your balance and ledger.</div>
+        </div>
+        <div className="rounded-xl border bg-card p-6 text-card-foreground">
+          <div className="text-sm text-muted-foreground">Sign in to view your credits.</div>
+          <Link className="mt-2 inline-flex underline underline-offset-4" href="/login">
+            Go to login
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   await grantTrialCreditsIfNone(session.user.id)
   const [balance, items] = await Promise.all([

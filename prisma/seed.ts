@@ -1,6 +1,31 @@
 import { prisma } from "../src/lib/db"
 
 async function main() {
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL ?? "admin@mbg.local"
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: superAdminEmail },
+    update: { name: "Super Admin" },
+    create: { email: superAdminEmail, name: "Super Admin" },
+  })
+
+  const existingAdminGrant = await prisma.creditLedger.findFirst({
+    where: { userId: superAdmin.id, refType: "admin", refId: "seed_super_admin" },
+    select: { id: true },
+  })
+
+  if (!existingAdminGrant) {
+    await prisma.creditLedger.create({
+      data: {
+        userId: superAdmin.id,
+        delta: 10000,
+        reason: "adjustment",
+        refType: "admin",
+        refId: "seed_super_admin",
+      },
+    })
+  }
+
   await prisma.templatePack.upsert({
     where: { id: "ugc_hook" },
     update: {},

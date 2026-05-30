@@ -5,7 +5,22 @@ import { prisma } from "@/lib/db"
 
 export default async function ProjectsPage() {
   const session = await auth()
-  if (!session?.user?.id) redirect("/login")
+  if (!session?.user?.id) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="text-lg font-semibold">Projects</div>
+          <div className="text-sm text-muted-foreground">Browse and manage your projects.</div>
+        </div>
+        <div className="rounded-xl border bg-card p-6 text-card-foreground">
+          <div className="text-sm text-muted-foreground">Sign in to see your projects.</div>
+          <Link className="mt-2 inline-flex underline underline-offset-4" href="/login">
+            Go to login
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   const items = await prisma.project.findMany({
     where: { userId: session.user.id },
@@ -52,4 +67,3 @@ export default async function ProjectsPage() {
     </div>
   )
 }
-

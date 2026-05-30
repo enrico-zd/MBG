@@ -17,6 +17,8 @@ function labelFor(seg: string) {
   if (seg === "credits") return "Credits"
   if (seg === "projects") return "Projects"
   if (seg === "generate") return "Generate"
+  if (seg === "jobs") return "Jobs"
+  if (seg === "settings") return "Settings"
   return seg.length > 20 ? `${seg.slice(0, 8)}…${seg.slice(-6)}` : seg
 }
 
@@ -57,4 +59,3 @@ export function AppBreadcrumb() {
     </Breadcrumb>
   )
 }
-
