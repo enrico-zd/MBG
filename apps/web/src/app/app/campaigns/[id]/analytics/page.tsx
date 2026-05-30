@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
-export default function CampaignAnalyticsPage(props: { params: { id: string } }) {
-  const id = props.params.id;
+export default function CampaignAnalyticsPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = use(props.params);
   const [data, setData] = useState<{ viewCount: number; ctaCount: number; ctr: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,4 +69,3 @@ export default function CampaignAnalyticsPage(props: { params: { id: string } })
     </div>
   );
 }
-

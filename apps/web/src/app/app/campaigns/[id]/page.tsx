@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Campaign, VideoJob } from "@/lib/types";
 import { getRecommendedPacks } from "@/lib/packs";
 import VideoPreview from "@/components/video-preview";
 
-export default function CampaignDetailPage(props: { params: { id: string } }) {
+export default function CampaignDetailPage(props: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const id = props.params.id;
+  const { id } = use(props.params);
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [job, setJob] = useState<VideoJob | null>(null);
@@ -404,4 +404,3 @@ export default function CampaignDetailPage(props: { params: { id: string } }) {
     </div>
   );
 }
-
