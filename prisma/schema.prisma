@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  projects      Project[]
+  assets        Asset[]
+  jobs          GenerationJob[]
+  creditLedger  CreditLedger[]
+  shareLinks    ShareLink[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets Asset[]
+  jobs   GenerationJob[]
+
+  @@index([userId, createdAt])
+}
+
+model Asset {
+  id         String    @id @default(cuid())
+  userId     String
+  projectId  String
+  url        String
+  mimeType   String
+  width      Int
+  height     Int
+  sizeBytes  Int
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
+model TemplatePack {
+  id         String   @id
+  name       String
+  tags       String[]
+  basePrompt String
+  defaults   Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  jobs GenerationJob[]
+}
+
+enum JobStatus {
+  queued
+  generating
+  done
+  failed
+  cancelled
+}
+
+model GenerationJob {
+  id             String    @id @default(cuid())
+  userId         String
+  projectId      String
+  packId         String
+  status         JobStatus @default(queued)
+  provider       String
+  providerJobId  String?
+
+  params         Json
+  promptFinal    String
+
+  quoteCredits   Int
+  settleCredits  Int?
+
+  failureCode    String?
+  failureMessage String?
+
+  createdAt      DateTime  @default(now())
+  startedAt      DateTime?
+  finishedAt     DateTime?
+
+  idempotencyKey String
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pack    TemplatePack @relation(fields: [packId], references: [id])
+  video   VideoAsset?
+  shareLinks ShareLink[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([status, createdAt])
+  @@index([projectId, createdAt])
+}
+
+model VideoAsset {
+  id              String   @id @default(cuid())
+  jobId           String   @unique
+  url             String
+  durationSeconds Int
+  resolution      String
+  fileSizeBytes   Int?
+  format          String
+  aspectRatio     String
+  createdAt       DateTime @default(now())
+
+  job GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+enum CreditReason {
+  trial_grant
+  consume
+  refund
+  adjustment
+}
+
+enum CreditRefType {
+  job
+  admin
+}
+
+model CreditLedger {
+  id        String       @id @default(cuid())
+  userId    String
+  delta     Int
+  reason    CreditReason
+  refType   CreditRefType
+  refId     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([refType, refId])
+}
+
+model ShareLink {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
