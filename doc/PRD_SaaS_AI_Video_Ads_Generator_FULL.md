@@ -69,6 +69,7 @@ Produk ini memecahkan itu dengan **template pack + prompt builder + workflow ite
 ## 5) User Journey (End-to-End)
 ### 5.1 Journey A — Generate & Export (Primary)
 1. User login → melihat saldo credits + trial.
+   - Trial credits default: 100
 2. Create Project (judul/produk) atau langsung “Quick Generate”.
 3. Upload 1–5 gambar produk (opsional: logo).
 4. Pilih Template Pack (mis. “UGC Promo”, “Minimal Studio”, “Luxury”).
@@ -127,6 +128,7 @@ Template pack berisi:
   - offer/promo, CTA, product name, key benefits,
   - durasi target **(5/10/15 detik)**,
   - kualitas output (Standard/HD/Full HD).
+  - default kualitas: Standard (540p)
 - Prompt builder menghasilkan:
   - prompt final
   - parameter generation (aspect ratio **9:16 locked**, duration)
@@ -190,6 +192,7 @@ Template pack berisi:
 Credits adalah saldo. Semua perubahan saldo wajib tercatat di ledger.
 **Fitur**
 - Trial credits untuk user baru.
+  - Default trial: 100 credits.
 - Pricing rule:
   - cost = f(duration, outputQuality).
   - duration ∈ {5, 10, 15} detik.
@@ -336,9 +339,9 @@ Untuk menghindari lock-in, buat interface provider:
    - `POST /image/upload` (multipart form-data: `image`)
 2. Create generation job → dapat `video_id`
    - `POST /video/img/generate`
-   - body minimal: `img_id`, `prompt`, `model`, `duration`, `quality`, `seed`
+   - model di-lock: `v6` (user tidak bisa mengganti)
+   - body minimal: `img_id`, `prompt`, `model="v6"`, `duration`, `quality`, `seed`
    - audio: set `generate_audio_switch=false` (jika didukung model) untuk memastikan output no-audio
-   - rekomendasi model: `v6` (mendukung durasi 1–15 detik)
 3. Poll result sampai selesai
    - `GET /video/result/{video_id}`
    - status penting:
@@ -350,7 +353,7 @@ Untuk menghindari lock-in, buat interface provider:
 - Durasi: request hanya mengizinkan 5/10/15 detik. Jika provider mengembalikan durasi di luar itu → fail + auto-refund.
 - Rasio: target 9:16 portrait.
   - Untuk image-to-video, enforce lewat:
-    - preprocessing asset (crop/pad ke portrait sebelum upload), dan
+    - preprocessing asset (crop) ke 9:16 sebelum upload, dan
     - validasi result memakai `outputWidth`/`outputHeight` dari endpoint result.
   - Jika output bukan 9:16 → fail + auto-refund.
 ---
