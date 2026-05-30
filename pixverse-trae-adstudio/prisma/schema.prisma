@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum ObjectivePreset {
+  AWARENESS
+  PRODUCT_HIGHLIGHT
+  SOCIAL_PROOF
+  PROMO_DISCOUNT
+  LIMITED_DROP
+  CONVERSION_SHOP_NOW
+  BUNDLE_OFFER
+  RETARGETING
+  CUSTOM
+}
+
+enum CampaignStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum VideoClipType {
+  HOOK
+  FEATURE
+  OFFER
+}
+
+enum VideoVariant {
+  A
+  B
+}
+
+enum VideoStatus {
+  QUEUED
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+enum EventType {
+  VIEW
+  CTA_CLICK
+  ADD_TO_CART
+  CHECKOUT_CLICK
+  VOTE_A
+  VOTE_B
+  COMMENT_CREATE
+}
+
+enum VoteOption {
+  A
+  B
+}
+
+model User {
+  id        String      @id @default(cuid())
+  email     String      @unique
+  name      String?
+  credits   Int         @default(2)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  sessions  Session[]
+  campaigns Campaign[]
+  votes     Vote[]
+  comments  Comment[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id              String          @id @default(cuid())
+  userId          String
+  title           String
+  objectivePreset ObjectivePreset
+  objectiveText   String
+  status          CampaignStatus  @default(DRAFT)
+  publishedSlug   String?         @unique
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product       Product?
+  packConfig    PackConfig?
+  videoAssets   VideoAsset[]
+  landingConfig LandingConfig?
+  eventLogs     EventLog[]
+  votes         Vote[]
+  comments      Comment[]
+
+  @@index([userId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  campaignId  String   @unique
+  name        String
+  priceCents  Int
+  description String
+  category    String
+  checkoutUrl String?
+  variantsJson Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  images   ProductImage[]
+
+  @@index([campaignId])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  urlPath   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model PackConfig {
+  id              String   @id @default(cuid())
+  campaignId       String   @unique
+  packId           String
+  audience         String
+  tone             String
+  overlayLanguage  String
+  offer            String
+  ctaText          String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  campaign Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  pack     CreativePack @relation(fields: [packId], references: [id], onDelete: Restrict)
+
+  @@index([packId])
+}
+
+model CreativePack {
+  id                  String   @id @default(cuid())
+  slug                String   @unique
+  name                String
+  packStyle            String
+  defaultTone          String
+  defaultCta           String
+  targetDurationSec    Int
+  estimatedCreditCost  Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  packConfigs PackConfig[]
+  videoAssets VideoAsset[]
+}
+
+model VideoAsset {
+  id              String       @id @default(cuid())
+  campaignId       String
+  packId           String
+  pixverseVideoId  String
+  status           VideoStatus  @default(QUEUED)
+  url              String?
+  durationSec      Int
+  clipType         VideoClipType
+  variant          VideoVariant
+  errorReason      String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  pack     CreativePack @relation(fields: [packId], references: [id], onDelete: Restrict)
+
+  @@unique([campaignId, variant, clipType])
+  @@index([campaignId])
+  @@index([packId])
+}
+
+model LandingConfig {
+  id           String   @id @default(cuid())
+  campaignId   String   @unique
+  chaptersJson Json
+  hotspotsJson Json?
+  ctaText      String
+  checkoutUrl  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model EventLog {
+  id         String   @id @default(cuid())
+  campaignId String
+  type       EventType
+  metaJson   Json?
+  createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
+
+model Vote {
+  id         String     @id @default(cuid())
+  campaignId String
+  userId     String?
+  option     VoteOption
+  createdAt  DateTime   @default(now())
+
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  campaignId String
+  userId     String?
+  authorName String
+  text       String
+  createdAt  DateTime @default(now())
+
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
