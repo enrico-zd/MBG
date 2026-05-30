@@ -40,6 +40,16 @@ Produk ini memecahkan itu dengan **template pack + prompt builder + workflow ite
 3. **Content Creator (Tertiary)**  
    Kebutuhan: membuat UGC-like ads dengan hook + CTA, bahasa & tone fleksibel.
 ---
+## 3.1) Tech Stack (MVP)
+- Frontend: **Next.js (App Router)** + **React** + **TypeScript**
+- UI: **shadcn/ui** + **Tailwind CSS**
+- Auth: **Auth.js**
+- Database: **PostgreSQL** + **Prisma**
+- Storage: object storage untuk asset & video (private) + signed URL untuk download/share
+- Async jobs: worker/queue untuk generate job + polling status provider (fallback jika webhook tidak tersedia)
+- Payments: **Alipay** untuk top-up/subscription credits + webhook/notify untuk settlement ke ledger
+- Observability: structured logging untuk job (jobId, userId, providerJobId) + error rate dashboard minimal
+---
 ## 4) Definisi MVP Scope (Apa yang harus ada)
 ### 4.1 Core Modules (MVP)
 1. Auth & Account
