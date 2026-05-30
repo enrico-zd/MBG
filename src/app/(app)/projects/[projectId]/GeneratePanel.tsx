@@ -12,6 +12,16 @@ type Job = {
   video?: { url: string } | null
 }
 
+async function safeJson(res: Response) {
+  const text = await res.text()
+  if (!text) return {}
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return { error: text }
+  }
+}
+
 function newId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -65,9 +75,9 @@ export function GeneratePanel(props: { projectId: string }) {
         language: "id",
       }),
     })
-    const data = await res.json()
+    const data = (await safeJson(res)) as { error?: string; jobId?: string }
     if (!res.ok) {
-      setErr(data.error || "error")
+      setErr(data.error || `http_${res.status}`)
       return
     }
     setJobId(data.jobId)
@@ -80,12 +90,12 @@ export function GeneratePanel(props: { projectId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jobId: job.id }),
     })
-    const data = await res.json()
+    const data = (await safeJson(res)) as { error?: string; token?: string }
     if (!res.ok) {
-      setErr(data.error || "error")
+      setErr(data.error || `http_${res.status}`)
       return
     }
-    setShareUrl(`${window.location.origin}/s/${data.token}`)
+    if (data.token) setShareUrl(`${window.location.origin}/s/${data.token}`)
   }
 
   return (

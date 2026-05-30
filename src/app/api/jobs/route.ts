@@ -37,78 +37,86 @@ function buildPrompt(input: Body, pack: { name: string; basePrompt: string }) {
 }
 
 export async function POST(req: Request) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json({ error: "unauthorized" }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return Response.json({ error: "unauthorized" }, { status: 401 })
 
-  const body = (await req.json()) as Body
+    const body = (await req.json()) as Body
 
-  await grantTrialCreditsIfNone(session.user.id)
-  await assertJobCreateRateLimit(session.user.id)
+    await grantTrialCreditsIfNone(session.user.id)
+    await assertJobCreateRateLimit(session.user.id)
 
-  const pack = await prisma.templatePack.findUnique({ where: { id: body.packId } })
-  if (!pack) return Response.json({ error: "invalid_pack" }, { status: 400 })
+    const pack = await prisma.templatePack.findUnique({ where: { id: body.packId } })
+    if (!pack) return Response.json({ error: "invalid_pack" }, { status: 400 })
 
-  const project = await prisma.project.findFirst({
-    where: { id: body.projectId, userId: session.user.id },
-    select: { id: true },
-  })
-  if (!project) return Response.json({ error: "invalid_project" }, { status: 400 })
+    const project = await prisma.project.findFirst({
+      where: { id: body.projectId, userId: session.user.id },
+      select: { id: true },
+    })
+    if (!project) return Response.json({ error: "invalid_project" }, { status: 400 })
 
-  const quote = quoteCredits(body.duration, body.quality)
-  const balance = await getCreditsBalance(session.user.id)
-  if (balance < quote) {
-    return Response.json({ error: "insufficient_credits", quote, balance }, { status: 402 })
-  }
+    const quote = quoteCredits(body.duration, body.quality)
+    const balance = await getCreditsBalance(session.user.id)
+    if (balance < quote) {
+      return Response.json({ error: "insufficient_credits", quote, balance }, { status: 402 })
+    }
 
-  const existing = await prisma.generationJob.findUnique({
-    where: { userId_idempotencyKey: { userId: session.user.id, idempotencyKey: body.idempotencyKey } },
-  })
-  if (existing) return Response.json({ jobId: existing.id, quoteCredits: existing.quoteCredits })
+    const existing = await prisma.generationJob.findUnique({
+      where: { userId_idempotencyKey: { userId: session.user.id, idempotencyKey: body.idempotencyKey } },
+    })
+    if (existing) return Response.json({ jobId: existing.id, quoteCredits: existing.quoteCredits })
 
-  const promptFinal = buildPrompt(body, { name: pack.name, basePrompt: pack.basePrompt })
+    const promptFinal = buildPrompt(body, { name: pack.name, basePrompt: pack.basePrompt })
 
-  const firstAsset = await prisma.asset.findFirst({
-    where: { projectId: project.id, userId: session.user.id, deletedAt: null },
-    orderBy: { createdAt: "asc" },
-  })
-  if (!firstAsset) return Response.json({ error: "no_assets" }, { status: 400 })
+    const firstAsset = await prisma.asset.findFirst({
+      where: { projectId: project.id, userId: session.user.id, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+    })
+    if (!firstAsset) return Response.json({ error: "no_assets" }, { status: 400 })
 
-  const job = await prisma.generationJob.create({
-    data: {
-      userId: session.user.id,
-      projectId: project.id,
-      packId: pack.id,
-      status: "generating",
-      provider: "pixverse",
-      params: {
-        duration: body.duration,
-        quality: body.quality,
-        productName: body.productName,
-        offer: body.offer ?? null,
-        cta: body.cta ?? null,
+    const job = await prisma.generationJob.create({
+      data: {
+        userId: session.user.id,
+        projectId: project.id,
+        packId: pack.id,
+        status: "generating",
+        provider: "pixverse",
+        params: {
+          duration: body.duration,
+          quality: body.quality,
+          productName: body.productName,
+          offer: body.offer ?? null,
+          cta: body.cta ?? null,
+        },
+        promptFinal,
+        quoteCredits: quote,
+        idempotencyKey: body.idempotencyKey,
+        startedAt: new Date(),
       },
-      promptFinal,
-      quoteCredits: quote,
-      idempotencyKey: body.idempotencyKey,
-      startedAt: new Date(),
-    },
-  })
+    })
 
-  await consumeCreditsForJob({ userId: session.user.id, jobId: job.id, quoteCredits: quote })
+    await consumeCreditsForJob({ userId: session.user.id, jobId: job.id, quoteCredits: quote })
 
-  const assetBytes = await getObject({ key: firstAsset.url })
-  const uploaded = await pixverseUploadImage({ bytes: assetBytes.bytes, filename: "image.webp" })
-  const gen = await pixverseGenerateImageToVideo({
-    imgId: uploaded.img_id,
-    prompt: promptFinal,
-    duration: body.duration,
-    quality: body.quality,
-  })
+    const assetBytes = await getObject({ key: firstAsset.url })
+    const uploaded = await pixverseUploadImage({ bytes: assetBytes.bytes, filename: "image.webp" })
+    const gen = await pixverseGenerateImageToVideo({
+      imgId: uploaded.img_id,
+      prompt: promptFinal,
+      duration: body.duration,
+      quality: body.quality,
+    })
 
-  await prisma.generationJob.update({
-    where: { id: job.id },
-    data: { providerJobId: String(gen.video_id) },
-  })
+    await prisma.generationJob.update({
+      where: { id: job.id },
+      data: { providerJobId: String(gen.video_id) },
+    })
 
-  return Response.json({ jobId: job.id, quoteCredits: quote })
+    return Response.json({ jobId: job.id, quoteCredits: quote })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown"
+    return Response.json(
+      { error: process.env.NODE_ENV === "development" ? msg : "internal_error" },
+      { status: 500 },
+    )
+  }
 }
