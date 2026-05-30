@@ -1,0 +1,9 @@
+<svg width="1600" height="1200" viewBox="0 0 1600 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1200" fill="#F4F4F5"/>
+  <path d="M0 0H1600V1200H0V0Z" stroke="#E4E4E7" stroke-width="8"/>
+  <circle cx="800" cy="520" r="90" fill="#E4E4E7"/>
+  <path d="M560 840L710 690L835 815L1020 630L1240 850H560Z" fill="#E4E4E7"/>
+  <text x="800" y="1020" text-anchor="middle" fill="#71717A" font-size="48" font-family="ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,Liberation Sans,sans-serif">
+    placeholder.svg
+  </text>
+</svg>

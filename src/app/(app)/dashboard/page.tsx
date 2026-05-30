@@ -8,9 +8,10 @@ export default async function DashboardPage() {
 
   if (!session?.user?.id) {
     return (
-      <div className="p-6">
-        <Link className="underline" href="/login">
-          Login
+      <div className="rounded-xl border bg-card p-6 text-card-foreground">
+        <div className="text-sm text-muted-foreground">You are not signed in.</div>
+        <Link className="mt-2 inline-flex underline underline-offset-4" href="/login">
+          Go to login
         </Link>
       </div>
     )
@@ -33,23 +34,51 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <form action={quickGenerate}>
-          <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-            Quick Generate
-          </button>
-        </form>
+    <>
+      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-card p-4 text-card-foreground">
+          <div className="text-sm text-muted-foreground">Projects</div>
+          <div className="mt-2 text-2xl font-semibold">{items.length}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4 text-card-foreground">
+          <div className="text-sm text-muted-foreground">Status</div>
+          <div className="mt-2 text-sm font-medium">Ready</div>
+        </div>
+        <div className="rounded-xl border bg-card p-4 text-card-foreground">
+          <div className="text-sm text-muted-foreground">Quick action</div>
+          <form action={quickGenerate} className="mt-2">
+            <button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">
+              Quick Generate
+            </button>
+          </form>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
-        {items.map((p) => (
-          <Link key={p.id} className="rounded-lg border p-4 hover:bg-muted" href={`/projects/${p.id}`}>
-            <div className="font-medium">{p.title}</div>
-          </Link>
-        ))}
+      <div className="flex min-h-[60vh] flex-1 flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium">Recent projects</div>
+          <form action={quickGenerate}>
+            <button className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              New
+            </button>
+          </form>
+        </div>
+        <div className="grid grid-cols-1 gap-2">
+          {items.length ? (
+            items.map((p) => (
+              <Link
+                key={p.id}
+                className="rounded-lg border px-3 py-2 text-sm hover:bg-muted"
+                href={`/projects/${p.id}`}
+              >
+                <div className="font-medium">{p.title}</div>
+              </Link>
+            ))
+          ) : (
+            <div className="text-sm text-muted-foreground">No projects yet.</div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
