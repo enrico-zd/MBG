@@ -47,7 +47,7 @@ Produk ini memecahkan itu dengan **template pack + prompt builder + workflow ite
 - Database: **PostgreSQL** + **Prisma**
 - Storage: object storage untuk asset & video (private) + signed URL untuk download/share
 - Async jobs: worker/queue untuk generate job + polling status provider (fallback jika webhook tidak tersedia)
-- Payments: **Alipay** untuk top-up/subscription credits + webhook/notify untuk settlement ke ledger
+- Payments: dummy top-up/subscription (MVP) + integrasi pembayaran (Phase 2/1.5)
 - Observability: structured logging untuk job (jobId, userId, providerJobId) + error rate dashboard minimal
 ---
 ## 4) Definisi MVP Scope (Apa yang harus ada)
@@ -91,12 +91,19 @@ Produk ini memecahkan itu dengan **template pack + prompt builder + workflow ite
 ## 6) Fitur & Requirement Detail (dengan Acceptance Criteria)
 ### 6.1 Auth & Akun
 **Fitur**
-- Sign up / Login via email (magic link/OTP) atau OAuth (opsional).
+- Sign in via **Auth.js** (email magic link atau OAuth provider).
+- Session server-side via Auth.js + Prisma (revocable session).
 - Profil: plan, credits, trial ends.
 **Acceptance Criteria**
 - AC1: user bisa login/logout.
 - AC2: user selalu melihat credits balance yang sama (konsisten dari ledger).
-- AC3: endpoint generate menolak jika user tidak terautentikasi.
+- AC3: endpoint projects/assets/jobs/credits menolak jika user tidak terautentikasi.
+
+### 6.1.1 Auth.js Best Practices (Implementation Notes)
+- Source of truth identitas user adalah `session.user.id` dari Auth.js; jangan mengandalkan email sebagai key.
+- Session strategy direkomendasikan **database session** (bukan JWT-only) agar bisa revoke/force logout dan audit perangkat.
+- Jangan simpan `creditsBalance` di session; ambil dari DB saat render / request agar tidak stale.
+- Proteksi endpoint dengan `auth()` (server) dan middleware untuk route yang butuh login; share link bersifat token-based (tidak perlu session).
 ### 6.2 Project & Asset Management
 **Fitur**
 - Project sebagai container: title, notes, createdAt.
@@ -119,11 +126,20 @@ Template pack berisi:
   - language (ID/EN), tone (friendly/professional/energetic), target audience,
   - offer/promo, CTA, product name, key benefits,
   - durasi target **(5/10/15 detik)**,
-  - preset kualitas (standard/high).
+  - kualitas output (Standard/HD/Full HD).
 - Prompt builder menghasilkan:
   - prompt final
   - parameter generation (aspect ratio **9:16 locked**, duration)
   - output metadata untuk audit.
+**Starter Template Packs (MVP)**
+- UGC Hook
+- Flash Sale
+- Benefit Stack
+- Social Proof
+- Before/After
+- Premium/Luxury
+**Catatan**
+- Template pack adalah pilihan tombol/preset yang menentukan struktur prompt, pacing, dan default copy; user tetap hanya mengisi form yang disediakan.
 **Acceptance Criteria**
 - AC1: user bisa memilih pack dan edit field yang disediakan.
 - AC2: prompt final selalu tersimpan bersama job (reproducibility).
@@ -141,7 +157,8 @@ Template pack berisi:
   - credits “ditahan” (reserve) lalu “settle” saat done, atau dibatalkan/refund saat failed.
 - Video output constraints:
   - aspect ratio **9:16 (portrait) mandatory** untuk upload TikTok.
-  - durasi output di-lock ke **5/10/15 detik** (opsional: provider return berbeda → transcode/trim Phase 2).
+  - durasi output di-lock ke **5/10/15 detik**.
+  - jika output provider tidak sesuai (rasio bukan 9:16 atau durasi bukan 5/10/15) → job `failed_invalid_output` + auto-refund.
 **Acceptance Criteria**
 - AC1: job UI menampilkan status real-time (poll tiap N detik).
 - AC2: job failure menyimpan `failureCode` + `failureMessage`.
@@ -180,14 +197,22 @@ Credits adalah saldo. Semua perubahan saldo wajib tercatat di ledger.
 **Fitur**
 - Trial credits untuk user baru.
 - Pricing rule:
-  - cost = f(duration, presetQuality, resolution optional).
+  - cost = f(duration, outputQuality).
   - duration ∈ {5, 10, 15} detik.
-  - aspect ratio 9:16 di-lock dan tidak mempengaruhi harga (kecuali ada preset khusus).
+  - aspect ratio 9:16 di-lock dan tidak mempengaruhi harga.
+  - output quality (selaras dengan PixVerse `quality`):
+    - Standard = 540p
+    - HD = 720p
+    - Full HD = 1080p
+  - rekomendasi pricing (contoh formula):
+    - baseCredits: 5s=1, 10s=2, 15s=3
+    - multiplier: 540p=1.0, 720p=1.5, 1080p=2.0
+    - quoteCredits = ceil(baseCredits(duration) * multiplier(quality))
 - Ledger:
   - topup/subscription + consume + refund.
 - Paywall:
   - tampil jika credits < quote cost.
-- Webhook pembayaran (Phase 1.5 jika diperlukan) atau mock untuk demo.
+- Pembayaran: dummy top-up/subscription (MVP). Integrasi pembayaran real ditunda.
 **Acceptance Criteria**
 - AC1: user dapat melihat riwayat transaksi credits (timestamp, reason, amount).
 - AC2: cost ditampilkan sebelum generate dan sama dengan yang tercatat saat consume.
@@ -209,7 +234,8 @@ Credits adalah saldo. Semua perubahan saldo wajib tercatat di ledger.
 4. **Provider delay**: polling TTL; setelah TTL lewat → fail + refund.
 5. **Credits race**: dua tab generate bersamaan → gunakan transaksi database/lock agar saldo tidak negatif.
 6. **Abuse**: rate limit generate per user per menit/jam.
-7. **Output mismatch**: jika provider mengembalikan rasio non-9:16 atau durasi non {5,10,15}, tandai sebagai invalid output dan jalankan fallback (Phase 2) atau fail + refund (MVP, sesuai keputusan).
+7. **Output mismatch**: jika provider mengembalikan rasio non-9:16 atau durasi non {5,10,15} → job failed + auto-refund.
+8. **Ai-trace-id**: setiap request ke provider wajib pakai `Ai-trace-id` unik (UUID). Reuse dapat menghasilkan respons job lama, bukan generation baru.
 ---
 ## 8) Data Model (Lebih Detail)
 ### 8.1 ERD Ringkas (teks)
@@ -259,9 +285,8 @@ Credits adalah saldo. Semua perubahan saldo wajib tercatat di ledger.
 ## 9) API Draft (MVP)
 > Format contoh REST. Implementasi bisa disesuaikan (tRPC/GraphQL).
 ### 9.1 Auth
-- `POST /api/auth/login` (send OTP/magic link)
-- `POST /api/auth/verify` (verify token)
-- `POST /api/auth/logout`
+- Auth.js routes (App Router) untuk sign-in/out dan callback provider.
+- Semua API internal yang memerlukan login membaca session via Auth.js (server-side).
 ### 9.2 Projects & Assets
 - `POST /api/projects` (create)
 - `GET /api/projects`
@@ -306,6 +331,48 @@ Untuk menghindari lock-in, buat interface provider:
 - aspect ratio actual
 - status + error
 ---
+## 10.1 Integrasi PixVerse (MVP)
+### Endpoint & Headers
+- Base URL: `https://app-api.pixverse.ai/openapi/v2/`
+- Header wajib:
+  - `API-KEY`: API key PixVerse
+  - `Ai-trace-id`: UUID unik untuk setiap request generate dan status check
+- Semua respons berbentuk `{ ErrCode, ErrMsg, Resp }` dan sukses saat `ErrCode = 0`.
+### Flow Image-to-Video (rekomendasi default)
+1. Upload image → dapat `img_id`
+   - `POST /image/upload` (multipart form-data: `image`)
+2. Create generation job → dapat `video_id`
+   - `POST /video/img/generate`
+   - body minimal: `img_id`, `prompt`, `model`, `duration`, `quality`, `seed`
+   - rekomendasi model: `v6` (mendukung durasi 1–15 detik)
+3. Poll result sampai selesai
+   - `GET /video/result/{video_id}`
+   - status penting:
+     - `1`: success (field `url` tersedia)
+     - `5`: generating
+     - `7`: moderation failed
+     - `8`: generation failed
+### TikTok Constraints Enforcement (MVP)
+- Durasi: request hanya mengizinkan 5/10/15 detik. Jika provider mengembalikan durasi di luar itu → fail + auto-refund.
+- Rasio: target 9:16 portrait.
+  - Untuk image-to-video, enforce lewat:
+    - preprocessing asset (crop/pad ke portrait sebelum upload), dan
+    - validasi result memakai `outputWidth`/`outputHeight` dari endpoint result.
+  - Jika output bukan 9:16 → fail + auto-refund.
+---
+## 10.2 Job Processing Architecture (MVP)
+### Rekomendasi: DB-backed Worker
+- Web/API hanya membuat job record + memanggil provider generate untuk mendapatkan `providerJobId` (PixVerse `video_id`).
+- Worker terpisah melakukan polling status provider tiap 3–5 detik per job sampai selesai/failed/TTL.
+- Concurrency dibatasi (mis. max N job generating per user + max M global) untuk menjaga rate limit provider dan menghindari biaya tak terkontrol.
+### TTL & Retry
+- TTL default: 20 menit per job (jika lewat → fail + auto-refund).
+- Retry otomatis 1x hanya untuk error transient (network/timeout). Status 7 (moderation) tidak auto-retry.
+---
+## 10.3 Retention Policy (MVP)
+- Asset upload: disimpan 30 hari, atau sampai user delete.
+- Video result: disimpan 30 hari, atau sampai user delete.
+- Share link: expiry default 72 jam + bisa revoke manual.
 ## 11) UX / UI Requirements (Ringkas tapi preskriptif)
 ### Halaman/Screen (MVP)
 1. Login + onboarding (trial credits)
