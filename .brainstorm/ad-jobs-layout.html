@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MBG — /ad-jobs (wireframe)</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; background: #0b0d12; color: #e9eefc; }
+      header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(14,18,26,0.9); position: sticky; top: 0; }
+      .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; letter-spacing: 0.2px; }
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: #7c5cff; box-shadow: 0 0 0 6px rgba(124,92,255,0.18); }
+      .meta { opacity: 0.75; font-size: 13px; }
+      .wrap { padding: 18px 18px 28px; max-width: 1200px; margin: 0 auto; }
+      .grid { display: grid; grid-template-columns: 420px 1fr; gap: 14px; }
+      .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; }
+      .card h2 { margin: 0; font-size: 14px; letter-spacing: 0.2px; }
+      .card .hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
+      .card .bd { padding: 12px; }
+      .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(124,92,255,0.16); color: #cbbfff; font-size: 12px; border: 1px solid rgba(124,92,255,0.26); }
+      .muted { opacity: 0.7; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+      .field { background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px; }
+      .label { font-size: 11px; opacity: 0.75; margin-bottom: 6px; }
+      .input { height: 34px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.18); display: flex; align-items: center; padding: 0 10px; font-size: 13px; color: rgba(233,238,252,0.9); }
+      .textarea { height: 86px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.18); padding: 10px; font-size: 13px; color: rgba(233,238,252,0.9); }
+      .btn { display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 14px; border-radius: 12px; background: #7c5cff; color: #0b0d12; font-weight: 700; border: 0; }
+      .btn.secondary { background: rgba(255,255,255,0.06); color: #e9eefc; border: 1px solid rgba(255,255,255,0.12); }
+      .jobs { display: grid; gap: 10px; }
+      .job { padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.08); display: grid; gap: 6px; }
+      .job .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .job .id { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; opacity: 0.9; }
+      .status { font-size: 12px; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); }
+      .status.queued { border-color: rgba(124,92,255,0.35); background: rgba(124,92,255,0.14); }
+      .status.running { border-color: rgba(95,199,255,0.35); background: rgba(95,199,255,0.14); }
+      .status.done { border-color: rgba(98,255,161,0.35); background: rgba(98,255,161,0.12); }
+      .kv { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; opacity: 0.78; }
+      .seg { padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.08); display: grid; gap: 6px; }
+      .seg .hd2 { display: flex; align-items: center; justify-content: space-between; }
+      .seg .title { font-weight: 700; font-size: 13px; }
+      .bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; border: 1px solid rgba(255,255,255,0.10); }
+      .bar > div { height: 100%; width: 55%; background: linear-gradient(90deg, #7c5cff, #5fc7ff); }
+      .actions { display: flex; gap: 10px; margin-top: 12px; }
+      .note { font-size: 12px; opacity: 0.75; line-height: 1.45; }
+      .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 12px 0; }
+      @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <div class="dot"></div>
+        <div>MBG</div>
+        <div class="meta">/ad-jobs</div>
+      </div>
+      <div class="pill">Wireframe (opsi A)</div>
+    </header>
+
+    <div class="wrap">
+      <div class="grid">
+        <section class="card">
+          <div class="hd">
+            <h2>Buat Ad Job</h2>
+            <button class="btn secondary" type="button">Refresh</button>
+          </div>
+          <div class="bd">
+            <div class="field">
+              <div class="label">userEmail</div>
+              <div class="input">demo@example.com</div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <div class="label">project</div>
+                <div class="input">Dropdown: Project A</div>
+              </div>
+              <div class="field">
+                <div class="label">templatePack</div>
+                <div class="input">Dropdown: UGC Promo</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <div class="label">duration</div>
+                <div class="input">30s / 45s</div>
+              </div>
+              <div class="field">
+                <div class="label">quality</div>
+                <div class="input">360p / 540p / 720p / 1080p</div>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <div class="field">
+              <div class="label">asset utama (untuk upload image Pixverse)</div>
+              <div class="input">Dropdown: pilih 1 asset dari project</div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <div class="label">language</div>
+                <div class="input">id / en</div>
+              </div>
+              <div class="field">
+                <div class="label">tone</div>
+                <div class="input">friendly / professional / energetic</div>
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px">
+              <div class="label">productName</div>
+              <div class="input">Produk A</div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <div class="label">offer</div>
+                <div class="input">Diskon 20%</div>
+              </div>
+              <div class="field">
+                <div class="label">cta</div>
+                <div class="input">Beli sekarang</div>
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px">
+              <div class="label">benefits (list)</div>
+              <div class="textarea">- Cepat\n- Murah\n- Aman</div>
+            </div>
+            <div class="actions">
+              <button class="btn" type="button">Generate Video</button>
+              <button class="btn secondary" type="button">Simpan draft</button>
+            </div>
+            <p class="note" style="margin-top:10px">
+              Target end-to-end: klik Generate → create AdJob+segments → worker proses pixverse.* → stitch video → tombol download muncul.
+            </p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="hd">
+            <h2>Jobs & Detail</h2>
+            <span class="muted" style="font-size:12px">List kiri → detail kanan (atau klik membuka drawer di mobile)</span>
+          </div>
+          <div class="bd">
+            <div class="row" style="grid-template-columns: 1fr 1fr; align-items: start;">
+              <div class="jobs">
+                <div class="job">
+                  <div class="top">
+                    <div class="id">job_3f2a...c91</div>
+                    <div class="status queued">queued</div>
+                  </div>
+                  <div class="kv"><span>30s</span><span>720p</span><span>ugc_promo</span><span>credits est: 270</span></div>
+                </div>
+                <div class="job">
+                  <div class="top">
+                    <div class="id">job_91b7...2aa</div>
+                    <div class="status running">running</div>
+                  </div>
+                  <div class="kv"><span>45s</span><span>1080p</span><span>luxury</span><span>credits est: 810</span></div>
+                </div>
+                <div class="job">
+                  <div class="top">
+                    <div class="id">job_aa01...fe0</div>
+                    <div class="status done">done</div>
+                  </div>
+                  <div class="kv"><span>30s</span><span>540p</span><span>studio_minimal</span><span>credits est: 210</span></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="field">
+                  <div class="label">Detail (job_91b7...2aa)</div>
+                  <div class="note">Status job: running • generateAudio: false • createdAt: 2026-05-30 10:12</div>
+                </div>
+                <div class="divider"></div>
+                <div class="seg">
+                  <div class="hd2">
+                    <div class="title">Segment 0 — hook</div>
+                    <div class="status running">generating</div>
+                  </div>
+                  <div class="bar"><div></div></div>
+                  <div class="note">pixverseImgId: 12345 • pixverseVideoId: — • promptFinal: (truncate)</div>
+                </div>
+                <div class="seg" style="margin-top:10px">
+                  <div class="hd2">
+                    <div class="title">Segment 1 — benefit</div>
+                    <div class="status queued">queued</div>
+                  </div>
+                  <div class="bar"><div style="width:12%"></div></div>
+                  <div class="note">Menunggu upload image.</div>
+                </div>
+                <div class="seg" style="margin-top:10px">
+                  <div class="hd2">
+                    <div class="title">Segment 2 — cta</div>
+                    <div class="status queued">queued</div>
+                  </div>
+                  <div class="bar"><div style="width:12%"></div></div>
+                  <div class="note">Menunggu upload image.</div>
+                </div>
+                <div class="actions">
+                  <button class="btn secondary" type="button">Download (muncul saat done)</button>
+                  <button class="btn secondary" type="button">Cancel</button>
+                  <button class="btn secondary" type="button">Retry failed tasks</button>
+                </div>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <p class="note">
+              Catatan: wireframe ini mengasumsikan kita menambah pilihan “asset utama” agar task <span class="id">pixverse.upload_image</span> tahu file image mana yang diupload.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
