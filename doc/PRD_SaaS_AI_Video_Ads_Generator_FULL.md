@@ -2,7 +2,7 @@
 > Dokumen ini mendefinisikan produk “AI Video Ads Generator” yang fokus pada pembuatan video iklan siap posting (TikTok-first) dengan model monetisasi credits. Integrasi auto-post TikTok disiapkan sebagai **Phase 2**.
 ---
 ## 0) TL;DR
-User upload aset produk → pilih template pack → app membangun prompt → generate video (async job) → review & buat variasi → export (MP4 + caption + hashtag + thumbnail) → upload ke TikTok manual (MVP) → bayar via credits berdasarkan durasi/preset.
+User upload aset produk → pilih template pack → app membangun prompt → generate video (async job) → review & buat variasi → export (MP4) → upload ke TikTok manual (MVP) → bayar via credits berdasarkan durasi/kualitas.
 ---
 ## 1) Latar Belakang & Problem
 Banyak seller/UMKM kesulitan membuat konten iklan video yang:
@@ -76,7 +76,7 @@ Produk ini memecahkan itu dengan **template pack + prompt builder + workflow ite
 6. Sistem menampilkan estimasi biaya credits → user konfirmasi.
 7. Generate job → status (queued/generating) → done.
 8. User generate 2 variasi tambahan (A/B/C).
-9. User pilih yang terbaik → export pack (MP4 + caption + hashtag + thumbnail).
+9. User pilih yang terbaik → export MP4.
 10. User download dan upload manual ke TikTok.
 ### 5.2 Journey B — Credits habis / Paywall
 1. User klik Generate.
@@ -159,11 +159,12 @@ Template pack berisi:
   - aspect ratio **9:16 (portrait) mandatory** untuk upload TikTok.
   - durasi output di-lock ke **5/10/15 detik**.
   - jika output provider tidak sesuai (rasio bukan 9:16 atau durasi bukan 5/10/15) → job `failed_invalid_output` + auto-refund.
+  - audio: untuk MVP, hasil **tanpa audio** (no-audio).
 **Acceptance Criteria**
 - AC1: job UI menampilkan status real-time (poll tiap N detik).
 - AC2: job failure menyimpan `failureCode` + `failureMessage`.
 - AC3: tidak ada double-charge (idempotency).
-- AC4: jika provider tidak mengembalikan output dalam TTL (mis. 20 menit), job jadi failed dan credits direfund.
+- AC4: jika provider tidak mengembalikan output dalam TTL (20 menit), job jadi failed dan credits direfund.
 ### 6.5 Review, Compare, Variations
 **Fitur**
 - Gallery per project (grid/list).
@@ -177,20 +178,13 @@ Template pack berisi:
 ### 6.6 Export Pack & Share
 **Fitur**
 - Export MP4:
-  - original output atau transcode (opsional).
-- Generate caption draft:
-  - dari pack + offer + CTA.
-- Hashtag recommendation:
-  - generik + kategori produk (rule-based untuk MVP).
-- Thumbnail:
-  - ambil frame awal / tengah (opsional).
+  - original output provider (tanpa transcode untuk MVP).
 - Share link preview (opsional MVP):
-  - read-only page berisi video + caption + download button.
+  - read-only page berisi video + download button.
   - bisa diberi expiry (24–72 jam) dan token.
 **Acceptance Criteria**
 - AC1: user bisa download MP4.
-- AC2: caption & hashtag bisa di-copy.
-- AC3: share link tidak bisa di-index dan tidak bocor private assets lain.
+- AC2: share link tidak bisa di-index dan tidak bocor private assets lain.
 ### 6.7 Credits, Billing, Ledger
 **Konsep**
 Credits adalah saldo. Semua perubahan saldo wajib tercatat di ledger.
@@ -306,7 +300,6 @@ Credits adalah saldo. Semua perubahan saldo wajib tercatat di ledger.
 - `POST /api/jobs/:id/retry`
 - `POST /api/jobs/:id/cancel` (best-effort)
 ### 9.5 Export & Share
-- `POST /api/jobs/:id/export` (opsional jika perlu transcode)
 - `GET /api/jobs/:id/download` (signed URL)
 - `POST /api/jobs/:id/share-link` (create share token)
 - `GET /s/:token` (public preview)
@@ -344,6 +337,7 @@ Untuk menghindari lock-in, buat interface provider:
 2. Create generation job → dapat `video_id`
    - `POST /video/img/generate`
    - body minimal: `img_id`, `prompt`, `model`, `duration`, `quality`, `seed`
+   - audio: set `generate_audio_switch=false` (jika didukung model) untuk memastikan output no-audio
    - rekomendasi model: `v6` (mendukung durasi 1–15 detik)
 3. Poll result sampai selesai
    - `GET /video/result/{video_id}`
@@ -366,8 +360,22 @@ Untuk menghindari lock-in, buat interface provider:
 - Worker terpisah melakukan polling status provider tiap 3–5 detik per job sampai selesai/failed/TTL.
 - Concurrency dibatasi (mis. max N job generating per user + max M global) untuk menjaga rate limit provider dan menghindari biaya tak terkontrol.
 ### TTL & Retry
-- TTL default: 20 menit per job (jika lewat → fail + auto-refund).
+- TTL fixed: 20 menit per job (jika lewat → fail + auto-refund).
 - Retry otomatis 1x hanya untuk error transient (network/timeout). Status 7 (moderation) tidak auto-retry.
+### Polling Schedule
+- 0–60 detik: poll tiap 3 detik
+- 60–180 detik: poll tiap 5 detik
+- 180 detik–TTL: poll tiap 10 detik
+---
+## 10.4 Rate Limit (MVP)
+- Per user:
+  - max 2 job `generating` bersamaan
+  - max 30 generate per hari
+  - max 10 generate per jam
+- Global:
+  - max 20 job `generating` bersamaan
+- API:
+  - `POST /api/jobs`: max 1 request per 10 detik per user (burst control)
 ---
 ## 10.3 Retention Policy (MVP)
 - Asset upload: disimpan 30 hari, atau sampai user delete.
@@ -381,7 +389,7 @@ Untuk menghindari lock-in, buat interface provider:
 4. Template pack picker + Customize form
 5. Generation progress screen (job list + status)
 6. Review & Compare (A vs B)
-7. Export modal (MP4 + caption + hashtag)
+7. Export modal (MP4 download + share link)
 8. Credits & Billing screen (ledger + topup)
 ### UX rules
 - Selalu tampilkan **quote cost** sebelum generate.
