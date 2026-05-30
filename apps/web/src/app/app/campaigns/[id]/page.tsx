@@ -15,7 +15,6 @@ export default function CampaignDetailPage(props: { params: Promise<{ id: string
   const [job, setJob] = useState<VideoJob | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
 
-  const [videoUrl, setVideoUrl] = useState("");
   const [language, setLanguage] = useState("id");
   const [tone, setTone] = useState("percaya diri, ringkas");
   const [promo, setPromo] = useState("");
@@ -82,7 +81,7 @@ export default function CampaignDetailPage(props: { params: Promise<{ id: string
     };
 
     void tick();
-    const t = setInterval(() => void tick(), 1200);
+    const t = setInterval(() => void tick(), 3000);
     return () => {
       active = false;
       clearInterval(t);
@@ -135,7 +134,7 @@ export default function CampaignDetailPage(props: { params: Promise<{ id: string
       const res = await fetch(`/api/campaigns/${id}/generate`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ videoUrl: videoUrl.trim() || undefined }),
+        body: JSON.stringify({}),
       });
       const data = (await res.json()) as { job?: VideoJob; credits?: number; error?: string };
       if (!res.ok) throw new Error(data.error || "generate_failed");
@@ -348,7 +347,7 @@ export default function CampaignDetailPage(props: { params: Promise<{ id: string
           <div>
             <div className="text-sm font-semibold">Video generation</div>
             <div className="mt-1 text-sm text-neutral-400">
-              Paste your PixVerse output URL (optional). The job simulates queued → generating → done.
+              Generates via PixVerse API (image upload → generate job → poll status).
             </div>
           </div>
           <button
@@ -359,16 +358,6 @@ export default function CampaignDetailPage(props: { params: Promise<{ id: string
           >
             Generate ({selectedPack.creditCost} credit)
           </button>
-        </div>
-
-        <div className="grid gap-2">
-          <label className="text-xs text-neutral-400">Video URL</label>
-          <input
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            className="rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
-            placeholder="https://.../video.mp4"
-          />
         </div>
 
         {job ? (

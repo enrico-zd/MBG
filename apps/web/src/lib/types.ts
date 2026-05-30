@@ -24,12 +24,20 @@ export type VideoJobStatus = "queued" | "generating" | "done" | "failed";
 export type VideoJob = {
   id: string;
   campaignId: string;
+  provider: "pixverse";
   status: VideoJobStatus;
   startedAt: string;
   finishedAt?: string;
   error?: string;
   videoUrl?: string;
   durationSec?: number;
+  pixverse?: {
+    imageId: number;
+    videoId: number;
+    model: string;
+    quality: string;
+    prompt: string;
+  };
 };
 
 export type Campaign = {
@@ -82,4 +90,3 @@ export type Db = {
   videoJobs: VideoJob[];
   events: EventLog[];
 };
-

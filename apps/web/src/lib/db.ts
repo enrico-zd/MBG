@@ -123,9 +123,17 @@ export async function spendCredits(amount: number): Promise<number> {
   });
 }
 
+export async function addCredits(amount: number): Promise<number> {
+  return withDb((db) => {
+    db.user.credits += amount;
+    return db.user.credits;
+  });
+}
+
 export async function createVideoJob(input: {
   campaignId: string;
   creditCost: number;
+  pixverse: VideoJob["pixverse"];
   videoUrl?: string;
   durationSec?: number;
 }): Promise<VideoJob> {
@@ -135,8 +143,10 @@ export async function createVideoJob(input: {
     const job: VideoJob = {
       id: newId(),
       campaignId: input.campaignId,
+      provider: "pixverse",
       status: "queued",
       startedAt: nowIso(),
+      pixverse: input.pixverse,
       videoUrl: input.videoUrl,
       durationSec: input.durationSec,
     };
@@ -150,6 +160,15 @@ export async function createVideoJob(input: {
 export async function getVideoJob(id: string): Promise<VideoJob | undefined> {
   const db = await readDb();
   return db.videoJobs.find((j) => j.id === id);
+}
+
+export async function updateVideoJob(id: string, patch: Partial<VideoJob>): Promise<VideoJob> {
+  return withDb((db) => {
+    const job = db.videoJobs.find((j) => j.id === id);
+    if (!job) throw new Error("job_not_found");
+    Object.assign(job, patch);
+    return job;
+  });
 }
 
 export async function advanceVideoJob(jobId: string): Promise<VideoJob> {
@@ -198,4 +217,3 @@ export async function getCampaignAnalytics(campaignId: string) {
 
   return { viewCount, ctaCount, ctr };
 }
-
